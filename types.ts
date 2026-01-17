@@ -15,7 +15,8 @@ export enum Language {
   // World Languages
   EN = 'الإنجليزية (English)',
   FR = 'الفرنسية (Français)',
-  ES = 'الإسبانية (Espاذol)',
+  // Fixed typo in Spanish name
+  ES = 'الإسبانية (Español)',
   RU = 'الروسية (Русский)',
   FA = 'الفارسية (فارسی)',
   KU = 'الكردية (Kurdî)',
@@ -181,7 +182,9 @@ export enum MarketingGoal {
   HIGH_PRICE_ANCHOR = 'تثبيت قيمة السعر المرتفع',
   TRUE_SCARCITY = 'خلق الندرة الحقيقية المبررة',
   TRIBE_BUILDING = 'بناء القبيلة والولاء المجتمعي',
-  TRIAL_NUDGE = 'الحث على التجربة الأولى'
+  TRIAL_NUDGE = 'الحث على التجربة الأولى',
+  // Added URGENT goal to resolve build error in offlineDatabase.ts
+  URGENT = 'خلق حالة استعجال (عاجل)'
 }
 
 export enum LengthType {

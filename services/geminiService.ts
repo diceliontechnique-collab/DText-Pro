@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AdRequest, AdResult, AdTone, CorrectionMode, Language, OutputFormat } from "../types";
+import { AdRequest, AdResult, AdTone, CorrectionMode, Language, OutputFormat, LengthType } from "../types";
 import { generateOfflineAd } from "./offlineDatabase";
 
 // Always use named parameter for apiKey during initialization.
@@ -35,10 +35,15 @@ export const optimizeAdText = async (request: AdRequest, refinementMode?: string
   const scriptConstraint = isArabicDialect 
     ? "تحذير صارم جداً وملزم: يُمنع منعاً باتاً وكلياً استخدام الحروف اللاتينية (الإنجليزية أو الفرنسية) أو لغة (الفرانكو) في الرد. يجب أن يكون النص كامل مكتوباً بالأحرف العربية فقط."
     : "استخدم الحروف اللاتينية المناسبة للغة المختارة.";
+
+  // طبقة التحكم الهندسي الذكي في طول النص (إضافة تراكمية لفرض الدقة)
+  const lengthConstraintInstruction = (isSocial && request.targetLengthValue)
+    ? `\n- قاعدة التحكم الهندسي الإلزامية: يجب أن يتكون المخرج النهائي بدقة من ${request.targetLengthValue} ${request.targetLengthType === LengthType.CHARACTERS ? 'حرفاً' : 'سطراً/جملة'}. هذا القيد قطعي ومقدس ولا يُسمح بتجاوزه بأي حال من الأحوال. قم بالعد والتحقق قبل إرسال الرد.`
+    : "";
   
   const outputModeInstruction = isSocial 
     ? `\n- النمط المطلوب: منشور سوشيال ميديا (Social Copy).
-- تعليمات التنسيق: استخدم الإيموجيات بشكل مكثف (حوالي ${request.emojiCount || 5} إيموجي). ركز على نصوص جذابة بصرية وقصيرة ومقسمة لفقرات. ممنوع إدراج أي تعليمات إخراجية صامتة بين أقواس.`
+- تعليمات التنسيق: استخدم الإيموجيات بشكل مكثف (حوالي ${request.emojiCount || 5} إيموجي). ركز على نصوص جذابة بصرية وقصيرة ومقسمة لفقرات. ممنوع إدراج أي تعليمات إخراجية صامتة بين أقواس.${lengthConstraintInstruction}`
     : `\n- النمط المطلوب: سيناريو صوتي إذاعي (Voice Script).
 - تعليمات التنسيق: ركز على الحوار والوصف الصوتي. يجب إدراج تعليمات إخراجية تقنية بين أقواس مربعة [مثلاً: صوت موسيقى حماسية، وقفة قصيرة، نبرة هادئة] بشكل متكرر ليوجه المؤدي. ممنوع استخدام الإيموجيات نهائياً.`;
 

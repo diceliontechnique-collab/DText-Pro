@@ -37,15 +37,17 @@ const App: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [appStarted, setAppStarted] = useState(false);
 
-  // --- المودالات ---
+  // --- المودالات (إضافة تراكمية لمودال الدليل) ---
   const [showDevModal, setShowDevModal] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
+  const [showGuideModal, setShowGuideModal] = useState(false); // الحالة الجديدة
 
-  // --- مراجع التحرير ---
+  // --- مراجع التحرير والتمرير التراكمي ---
   const [isEditingInput, setIsEditingInput] = useState(false);
   const [isEditingResult, setIsEditingResult] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultRef = useRef<HTMLTextAreaElement>(null);
+  const loadingAreaRef = useRef<HTMLDivElement>(null); 
 
   // --- منطق التبعية الوظيفية (تحديث تراكمي) ---
   const isVoiceMode = outputFormat === OutputFormat.VOICE_SCRIPT;
@@ -71,13 +73,18 @@ const App: React.FC = () => {
     }
   }, []);
 
-  /**
-   * إضافة تراكمية: تفعيل التحرير التلقائي لمختبر الإدخال فور التشغيل
-   */
   useEffect(() => {
     setIsEditingInput(true);
     setIsEditingResult(true);
   }, []);
+
+  useEffect(() => {
+    if (loading) {
+      setTimeout(() => {
+        loadingAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    }
+  }, [loading]);
 
   const toggleTheme = () => {
     const newMode = !isDarkMode;
@@ -99,15 +106,6 @@ const App: React.FC = () => {
     const lines = originalText.split('\n');
     const numbered = lines.map((line, index) => line.trim() ? `${index + 1}. ${line}` : line).join('\n');
     setOriginalText(numbered);
-  };
-
-  const handleInputSceneBreak = () => {
-    setOriginalText(prev => prev + "\n\n--- [مشهد جديد] ---\n");
-  };
-
-  const handleInputFrame = () => {
-    const border = "━━━━━━━━━━━━━━━━━━━━━━━";
-    setOriginalText(prev => `${border}\n${prev}\n${border}`);
   };
 
   const handleInputInsertCTA = () => {
@@ -153,7 +151,7 @@ const App: React.FC = () => {
     setManualText(prev => `${border}\n${prev}\n${border}`);
   };
 
-  // --- وظائف التحكم في النص (أدوات الإدخال) ---
+  // --- وظائف التحكم في النص ---
   const handleSelectAllInput = () => { setIsEditingInput(true); setTimeout(() => { inputRef.current?.focus(); inputRef.current?.select(); }, 50); };
   const handleCutInput = () => { if (!originalText) return; navigator.clipboard.writeText(originalText).then(() => { setOriginalText(''); setInputCopied(true); setTimeout(() => setInputCopied(false), 2000); }); };
   
@@ -161,7 +159,6 @@ const App: React.FC = () => {
     try { 
       setIsEditingInput(true); 
       window.focus();
-      if (!navigator.clipboard || !navigator.clipboard.readText) throw new Error("Clipboard API not fully supported");
       const text = await navigator.clipboard.readText(); 
       if (text) {
         setOriginalText(prev => prev + text); 
@@ -169,11 +166,11 @@ const App: React.FC = () => {
         setTimeout(() => setInputCopied(false), 1500);
         setTimeout(() => inputRef.current?.focus(), 100);
       }
-    } catch (err) { alert('المتصفح يمنع اللصق التلقائي. يرجى استخدام (Ctrl+V) يدوياً.'); } 
+    } catch (err) { alert('استخدم (Ctrl+V) يدوياً.'); } 
   };
 
   const handleQuickCopyInput = () => { navigator.clipboard.writeText(originalText); setInputCopied(true); setTimeout(() => setInputCopied(false), 2000); };
-  const handleClearInput = () => { if(window.confirm('هل أنت متأكد من مسح النص بالكامل؟')) setOriginalText(''); };
+  const handleClearInput = () => { if(window.confirm('مسح النص؟')) setOriginalText(''); };
   const handleTrimInput = () => { setOriginalText(originalText.replace(/\s+/g, ' ').trim()); };
   const handleDuplicateInput = () => { setOriginalText(prev => prev + "\n" + prev); };
 
@@ -191,13 +188,13 @@ const App: React.FC = () => {
         setTimeout(() => setCopied(false), 1500);
         setTimeout(() => resultRef.current?.focus(), 100);
       }
-    } catch (err) { alert('المتصفح يمنع اللصق البرمجي.'); } 
+    } catch (err) { alert('المتصفح يمنع اللصق.'); } 
   };
 
   const handleStripCuesResult = () => { setManualText(manualText.replace(/\[.*?\]/g, '').replace(/\s+/g, ' ').trim()); };
-  const handleSpellFixResult = () => { handleOptimize("قم بإصلاح كافة الأخطاء الإملائية والنحوية في هذا النص بدقة"); };
-  const handleExpressionFixResult = () => { handleOptimize("أعد صياغة هذا النص ليكون أكثر بلاغة وقوة سيكولوجية وجذباً للعملاء"); };
-  const handleSaveResult = () => { if (result) { const newItem: HistoryItem = { ...result, improvedText: manualText, id: Date.now().toString(), timestamp: Date.now(), requestParams: { language, industry, tone } }; setHistory([newItem, ...history]); localStorage.setItem('adtext_pro_history', JSON.stringify([newItem, ...history])); alert('تم الحفظ في السجل 💾'); } };
+  const handleSpellFixResult = () => { handleOptimize("إصلاح الأخطاء الإملائية"); };
+  const handleExpressionFixResult = () => { handleOptimize("تحسين الصياغة والبلاغة"); };
+  const handleSaveResult = () => { if (result) { const newItem: HistoryItem = { ...result, improvedText: manualText, id: Date.now().toString(), timestamp: Date.now(), requestParams: { language, industry, tone } }; setHistory([newItem, ...history]); localStorage.setItem('adtext_pro_history', JSON.stringify([newItem, ...history])); alert('تم الحفظ 💾'); } };
 
   const formatDuration = (s: number) => {
     const mins = Math.floor(s / 60);
@@ -215,7 +212,7 @@ const App: React.FC = () => {
   }, [loading]);
 
   const handleOptimize = async (refineMsg?: string, quickMode?: CorrectionMode) => {
-    if (!originalText.trim() && !manualText.trim()) { setError('يرجى كتابة فكرة إعلانك أولاً.'); return; }
+    if (!originalText.trim() && !manualText.trim()) { setError('اكتب فكرتك أولاً.'); return; }
     setAppStarted(true); setLoading(true); setError(null); setResult(null);
     try {
       const adRequest: AdRequest = {
@@ -281,23 +278,25 @@ const App: React.FC = () => {
   );
 
   return (
-    <Layout isDarkMode={isDarkMode} onAboutClick={() => setShowAboutModal(true)} navActions={<div className="flex gap-2"><button onClick={() => setShowDevModal(true)} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-blue-600/20 border border-blue-500/40 text-blue-300">عن المطور</button><button onClick={toggleTheme} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-slate-900 border border-slate-800 text-yellow-400">{isDarkMode ? 'الوضع الساطع' : 'الداكن'}</button><button onClick={() => setShowHistory(!showHistory)} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-slate-900 border border-slate-800 text-emerald-400">{showHistory ? 'إغلاق السجل' : 'عرض السجل'}</button></div>}>
+    <Layout isDarkMode={isDarkMode} onAboutClick={() => setShowAboutModal(true)} navActions={<div className="flex gap-2"><button onClick={() => setShowGuideModal(true)} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600 transition-all">دليل الاستخدام 📖</button><button onClick={() => setShowDevModal(true)} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-blue-600/20 border border-blue-500/40 text-blue-300">عن المطور</button><button onClick={toggleTheme} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-slate-900 border border-slate-800 text-yellow-400">{isDarkMode ? 'الوضع الساطع' : 'الداكن'}</button><button onClick={() => setShowHistory(!showHistory)} className="px-3 py-1.5 rounded-xl font-black text-[10px] bg-slate-900 border border-slate-800 text-emerald-400">{showHistory ? 'إغلاق السجل' : 'عرض السجل'}</button></div>}>
       <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
         <div className="text-center space-y-4">
           <div className="inline-block px-5 py-2 bg-blue-600/10 border border-blue-500/30 rounded-full mb-4 neon-playing"><span className="text-blue-400 text-xs font-black tracking-widest uppercase neon-text-blue">الذكاء الاصطناعي للتسويق السيكولوجي</span></div>
           <h2 className="text-5xl lg:text-6xl font-black leading-tight text-white">صناعة <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">النص الإعلاني</span> الخارق</h2>
         </div>
 
-        {loading && (
-          <div className="w-full min-h-[400px] glass-card rounded-[3rem] p-12 flex flex-col items-center justify-center text-center space-y-12 border-blue-500/30">
-            <div className="relative w-64 h-64 flex items-center justify-center">
-               <div className="absolute inset-0 border-[12px] border-blue-500/5 rounded-full"></div>
-               <div className="absolute inset-0 border-t-[12px] border-blue-500 rounded-full animate-spin" style={{ transform: `rotate(${loadingProgress * 3.6}deg)` }}></div>
-               <div className="absolute inset-6 bg-slate-950/50 rounded-full flex flex-col items-center justify-center"><span className="text-6xl font-black text-blue-400 font-mono">{Math.floor(loadingProgress)}%</span></div>
+        <div ref={loadingAreaRef} className="scroll-target">
+          {loading && (
+            <div className="w-full min-h-[400px] glass-card rounded-[3rem] p-12 flex flex-col items-center justify-center text-center space-y-12 border-blue-500/30">
+              <div className="relative w-64 h-64 flex items-center justify-center">
+                 <div className="absolute inset-0 border-[12px] border-blue-500/5 rounded-full"></div>
+                 <div className="absolute inset-0 border-t-[12px] border-blue-500 rounded-full animate-spin" style={{ transform: `rotate(${loadingProgress * 3.6}deg)` }}></div>
+                 <div className="absolute inset-6 bg-slate-950/50 rounded-full flex flex-col items-center justify-center"><span className="text-6xl font-black text-blue-400 font-mono">{Math.floor(loadingProgress)}%</span></div>
+              </div>
+              <h3 className="text-4xl font-black text-blue-400">جاري التحسين الذكي...</h3>
             </div>
-            <h3 className="text-4xl font-black text-blue-400">جاري التحسين الذكي...</h3>
-          </div>
-        )}
+          )}
+        </div>
 
         {result && <ResultSection />}
 
@@ -376,7 +375,6 @@ const App: React.FC = () => {
                    <span className="text-[9px] font-black text-red-300 text-center">لمس القلب</span>
                 </button>
 
-                {/* الصف الثاني (10 أيقونات) */}
                 <button onClick={() => handleOptimize("أضف طابع النخبوية والرفاهية")} className="flex flex-col items-center justify-center p-3 rounded-2xl bg-slate-900 border border-indigo-500/30 hover:bg-indigo-600/20 transition-all h-24">
                    <span className="text-xl mb-1">💎</span>
                    <span className="text-[9px] font-black text-indigo-300 text-center">نخبوية فخمة</span>
@@ -429,17 +427,29 @@ const App: React.FC = () => {
               <div className="space-y-3"><label className="text-[11px] text-slate-500 font-black uppercase">نمط المخرج النهائي</label><select value={outputFormat} onChange={(e) => setOutputFormat(e.target.value as OutputFormat)} className="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl text-white outline-none focus:ring-2 focus:ring-blue-500">{Object.values(OutputFormat).map(v => <option key={v} value={v}>{v}</option>)}</select></div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8 mt-10">
               <div className={`p-6 bg-slate-950/40 border border-slate-800 rounded-[2rem] text-center space-y-4 transition-all duration-500 ${!isVoiceMode ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
                 <h3 className="text-[11px] font-black text-slate-400">زمن السيناريو الصوتي</h3>
                 <div className="text-2xl font-black text-blue-400">{formatDuration(totalSeconds)}</div>
                 <input type="range" min="5" max="600" value={totalSeconds} onChange={(e) => setTotalSeconds(parseInt(e.target.value))} disabled={!isVoiceMode} className="w-full" />
               </div>
+
+              <div className={`p-6 bg-slate-950/40 border border-slate-800 rounded-[2rem] text-center space-y-4 transition-all duration-500 ${!isSocialMode ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
+                <h3 className="text-[11px] font-black text-slate-400">طول النص (ذكي)</h3>
+                <div className="flex justify-center gap-2 mb-2">
+                  <button onClick={() => setLengthType(LengthType.CHARACTERS)} className={`px-3 py-1 rounded-lg text-[9px] font-black ${lengthType === LengthType.CHARACTERS ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>حروف</button>
+                  <button onClick={() => setLengthType(LengthType.LINES)} className={`px-3 py-1 rounded-lg text-[9px] font-black ${lengthType === LengthType.LINES ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400'}`}>سطور</button>
+                </div>
+                <div className="text-2xl font-black text-blue-400">{lengthValue} <span className="text-[10px] text-slate-500">{lengthType === LengthType.CHARACTERS ? 'حرف' : 'سطر'}</span></div>
+                <input type="range" min={lengthType === LengthType.CHARACTERS ? 50 : 1} max={lengthType === LengthType.CHARACTERS ? 2000 : 50} value={lengthValue} onChange={(e) => setLengthValue(parseInt(e.target.value))} disabled={!isSocialMode} className="w-full" />
+              </div>
+
               <div className={`p-6 bg-slate-950/40 border border-slate-800 rounded-[2rem] text-center space-y-4 transition-all duration-500 ${!isSocialMode ? 'opacity-30 grayscale pointer-events-none' : 'opacity-100'}`}>
                 <h3 className="text-[11px] font-black text-slate-400">كثافة الإيموجيات</h3>
                 <div className="text-2xl font-black text-yellow-400">{emojiCount}</div>
                 <input type="range" min="0" max="25" value={emojiCount} onChange={(e) => setEmojiCount(parseInt(e.target.value))} disabled={!isSocialMode} className="w-full" />
               </div>
+              
               <div className="p-6 bg-slate-950/40 border border-slate-800 rounded-[2rem] space-y-4">
                  <h3 className="text-[11px] font-black text-slate-400 text-center">نص إضافي مدمج</h3>
                  <input type="text" value={customText} onChange={(e) => setCustomText(e.target.value)} placeholder="جملة إضافية..." className="w-full bg-transparent border-b border-slate-700 py-2 outline-none text-xs text-center focus:border-blue-500" />
@@ -459,7 +469,82 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      {/* --- طبقة المودالات المستعادة والمحسنة (إضافة تراكمية ملزمة) --- */}
+      {/* --- طبقة مودال دليل الاستخدام (إضافة تراكمية جديدة) --- */}
+      {showGuideModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-3xl animate-in fade-in duration-300">
+          <div className={`max-w-4xl w-full h-[85vh] ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-[3.5rem] p-10 shadow-2xl relative flex flex-col`}>
+             <button onClick={() => setShowGuideModal(false)} className="absolute top-8 left-8 w-12 h-12 flex items-center justify-center rounded-full bg-red-500 text-white hover:scale-110 transition-all font-black z-50 shadow-lg">✕</button>
+             
+             <div className="overflow-y-auto custom-scrollbar flex-1 pr-4 space-y-12">
+               <div className="text-center space-y-3">
+                 <h2 className="text-4xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">دليل الاستخدام الشامل DText Pro</h2>
+                 <p className="text-slate-500 font-medium">دليلك الاحترافي لصناعة محتوى تسويقي خارق يعتمد على الذكاء الاصطناعي السيكولوجي</p>
+               </div>
+
+               {/* الفصل الأول: مختبر الإدخال */}
+               <section className="space-y-6">
+                 <h3 className="text-2xl font-black flex items-center gap-3 text-blue-400 border-b border-blue-500/20 pb-2"><span>01</span> مختبر الإدخال & الأبنية النصية</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                     <p className="font-bold text-lg">💡 حقل النص الأساسي:</p>
+                     <p className="text-sm opacity-80 leading-relaxed">هذا هو "محراب الإبداع". ضع هنا فكرتك الخام بأي لغة أو لهجة. لا تشغل بالك بالتنسيق، الذكاء الاصطناعي سيقوم بإعادة الهيكلة.</p>
+                     <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 italic text-xs text-emerald-400">مثال: "عندي محل بيتزا جديد في الدار البيضاء، نبي إعلان يجيب الناس وجبة الغداء بخصم 30%"</div>
+                   </div>
+                   <div className="space-y-4">
+                     <p className="font-bold text-lg">🔐 نقطة القوة الحصرية:</p>
+                     <p className="text-sm opacity-80 leading-relaxed">أهم ميزة تجعل العميل يختارك أنت وليس غيرك. (سر المهنة). سيسعى النظام لدمج هذه الميزة بشكل طبيعي ومقنع.</p>
+                     <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 italic text-xs text-blue-400">مثال: "العجينة مخمرة طبيعياً لمدة 48 ساعة وسهلة الهضم"</div>
+                   </div>
+                 </div>
+               </section>
+
+               {/* الفصل الثاني: صندوق الأدوات الذكي */}
+               <section className="space-y-6">
+                 <h3 className="text-2xl font-black flex items-center gap-3 text-emerald-400 border-b border-emerald-500/20 pb-2"><span>02</span> صندوق الأدوات الذكي (الأيقونات)</h3>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   {[
+                     {icon: "🎙️", name: "توجيه صامت", desc: "يضيف تعليمات للمؤدي الصوتي (نبرة، وقفة)."},
+                     {icon: "🧲", name: "مغناطيس الفضول", desc: "يحول النص للغز يجذب انتباه العميل فوراً."},
+                     {icon: "⏳", name: "خلق ندرة", desc: "يستخدم تكتيك FOMO (الخوف من ضياع الفرصة)."},
+                     {icon: "💎", name: "نخبوية فخمة", desc: "يركز على الجودة والرفاهية والبرستيج الاجتماعي."}
+                   ].map((tool, i) => (
+                     <div key={i} className="p-5 bg-slate-950/30 border border-slate-800 rounded-3xl space-y-2">
+                       <span className="text-3xl">{tool.icon}</span>
+                       <p className="font-black text-xs">{tool.name}</p>
+                       <p className="text-[10px] opacity-70 leading-tight">{tool.desc}</p>
+                     </div>
+                   ))}
+                 </div>
+               </section>
+
+               {/* الفصل الثالث: لوحة التحكم الاستراتيجي */}
+               <section className="space-y-6">
+                 <h3 className="text-2xl font-black flex items-center gap-3 text-orange-400 border-b border-orange-500/20 pb-2"><span>03</span> لوحة التحكم الاستراتيجي</h3>
+                 <div className="space-y-4 text-sm opacity-80">
+                   <p><strong className="text-orange-300">نبرة الصوت (Tone):</strong> اختيارك هنا يغير القاموس اللغوي بالكامل. النبرة "السيكولوجية" تستخدم كلمات ذات تأثير عاطفي عميق، بينما النبرة "الفاخرة" تستخدم مفردات الرقي.</p>
+                   <p><strong className="text-orange-300">الهدف التسويقي:</strong> إذا اخترت "تثبيت السعر المرتفع"، سيقوم النظام بتبريد الصدمة السعرية عبر التركيز على القيمة والتفاصيل النادرة.</p>
+                   <p><strong className="text-orange-300">نمط المخرج:</strong> اختر "سيناريو صوتي" إذا كنت تريد إعلاناً للإذاعة (يحتوي على مؤثرات)، واختر "نص للصورة" لمنشورات فيسبوك وإنستقرام.</p>
+                 </div>
+               </section>
+
+               {/* الفصل الرابع: التحكم الميلمتري */}
+               <section className="space-y-6">
+                 <h3 className="text-2xl font-black flex items-center gap-3 text-purple-400 border-b border-purple-500/20 pb-2"><span>04</span> التحكم الميلمتري (العدادات)</h3>
+                 <div className="p-6 bg-slate-950/40 border border-slate-800 rounded-3xl space-y-4 text-sm">
+                   <p>⚖️ <strong className="text-purple-300">طول النص الذكي:</strong> حصري لمنشورات السوشيال ميديا. حدد بدقة عدد السطور أو الحروف. النظام سيقوم "بهندسة" الجمل لتناسب المساحة المختارة تماماً.</p>
+                   <p>⏲️ <strong className="text-purple-300">زمن السيناريو:</strong> حصري للإذاعة والتلفزيون. الذكاء الاصطناعي يحسب سرعة نبرة الصوت المختارة ويولد نصاً يغطي الزمن المطلوب بالثانية.</p>
+                 </div>
+               </section>
+
+               <div className="pt-10 border-t border-slate-800 text-center space-y-4">
+                 <p className="text-emerald-400 font-black italic">"التسويق ليس بيعاً للمنتجات، بل بيعاً للمشاعر والحلول.. DText Pro هو بوابتك لهذا العالم."</p>
+                 <button onClick={() => setShowGuideModal(false)} className="px-10 py-3 bg-blue-600 rounded-full font-black text-sm hover:bg-blue-500 transition-all">ابدأ الآن 🚀</button>
+               </div>
+             </div>
+          </div>
+        </div>
+      )}
+
       {showAboutModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-2xl animate-in fade-in zoom-in duration-300">
           <div className={`max-w-2xl w-full ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'} border rounded-[3rem] p-12 shadow-2xl relative overflow-hidden`}>
