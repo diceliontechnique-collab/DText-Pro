@@ -1,0 +1,147 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" style="scroll-behavior: smooth;">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DText Pro | مُحسّن النصوص الإعلانية</title>
+    <meta name="theme-color" content="#020617">
+    <link rel="manifest" href="/metadata.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Cairo', sans-serif;
+        background-color: #020617; /* Dark Slate 950 Default */
+        color: white;
+        transition: background-color 0.5s ease, color 0.5s ease;
+      }
+      
+      /* --- Light Mode Force Overrides (Incremental Fixes) --- */
+      body.light-mode {
+        background-color: #f8fafc !important; /* White Grayish */
+        color: #0f172a !important; /* Navy Blue */
+      }
+
+      body.light-mode .glass-card {
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.1) !important;
+      }
+
+      /* معالجة النصوص المشوهة في الوضع الساطع */
+      body.light-mode .text-white { color: #0f172a !important; }
+      body.light-mode .text-slate-400 { color: #475569 !important; }
+      body.light-mode .text-slate-300 { color: #334155 !important; }
+      body.light-mode .text-blue-400 { color: #2563eb !important; }
+      body.light-mode .text-blue-300 { color: #1d4ed8 !important; }
+
+      /* معالجة خلفيات العناصر التي كانت تظهر داكنة في الوضع الساطع */
+      body.light-mode .bg-slate-900, 
+      body.light-mode .bg-slate-950,
+      body.light-mode .bg-slate-950\/40,
+      body.light-mode .bg-slate-950\/60,
+      body.light-mode .bg-slate-950\/90 {
+        background-color: #ffffff !important;
+        border-color: #cbd5e1 !important;
+        color: #1e293b !important;
+      }
+
+      body.light-mode .bg-blue-600\/10 { background-color: #eff6ff !important; border: 1px solid #bfdbfe !important; }
+      body.light-mode .bg-blue-600\/20 { background-color: #dbeafe !important; }
+      body.light-mode .bg-slate-950\/50 { background-color: #f1f5f9 !important; }
+
+      /* تحسين أزرار صندوق الأدوات في الوضع الساطع */
+      body.light-mode .grid button {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        color: #1e40af !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+      }
+      body.light-mode .grid button:hover {
+        background-color: #f1f5f9 !important;
+        border-color: #3b82f6 !important;
+      }
+
+      /* تحسين الحقول والمساحات النصية */
+      body.light-mode textarea, 
+      body.light-mode select, 
+      body.light-mode input[type="text"] {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+      }
+
+      /* Neon effects conversion to soft shadows */
+      body.light-mode .neon-playing {
+        animation: none !important;
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.1) !important;
+        border-color: #3b82f6 !important;
+      }
+      body.light-mode .neon-text-blue {
+        text-shadow: none !important;
+        color: #2563eb !important;
+      }
+
+      /* تحسين السلايدر في الوضع الساطع */
+      body.light-mode input[type=range]::-webkit-slider-runnable-track { background: #e2e8f0 !important; }
+      body.light-mode input[type=range]::-webkit-slider-thumb { border: 2px solid #3b82f6 !important; }
+
+      @keyframes neon-pulse {
+        0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.2), inset 0 0 2px rgba(59, 130, 246, 0.1); }
+        50% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 0 5px rgba(59, 130, 246, 0.2); }
+      }
+
+      @keyframes neon-border-play {
+        0% { border-color: rgba(59, 130, 246, 0.3); }
+        50% { border-color: rgba(34, 197, 94, 0.5); }
+        100% { border-color: rgba(59, 130, 246, 0.3); }
+      }
+
+      .neon-playing {
+        animation: neon-pulse 3s infinite ease-in-out, neon-border-play 4s infinite ease-in-out;
+      }
+
+      .glass-card {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+      }
+
+      .neon-text-blue {
+        text-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+      }
+
+      .scroll-target {
+        scroll-margin-top: 100px;
+      }
+    </style>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          try {
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
+              .catch(err => console.debug('Service Worker Registration failed:', err.message));
+          } catch (e) {
+            console.debug('Service Worker check failed:', e);
+          }
+        });
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.36.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
